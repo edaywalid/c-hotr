@@ -8,6 +8,8 @@ typedef struct {
   void *handle;
   time_t last_modified;
   void (*cleanup)(void);
+  int inotify_fd;
+  int watch_fd;
 } HotReloader;
 
 HotReloader *hot_reload_init(const char *lib_path);
