@@ -13,5 +13,6 @@ typedef struct {
 HotReloader *hot_reload_init(const char *lib_path);
 int needs_reload(HotReloader *reloader);
 void *hot_reload_update(HotReloader *reloader);
+void hot_reload_cleanup(HotReloader *reloader);
 
 #endif

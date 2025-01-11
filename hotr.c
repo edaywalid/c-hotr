@@ -62,3 +62,14 @@ void *hot_reload_update(HotReloader *reloader) {
 
   return reloader->handle;
 }
+
+void hot_reload_cleanup(HotReloader *reloader) {
+  if (reloader->cleanup != NULL) {
+    reloader->cleanup();
+  }
+  if (reloader->handle != NULL) {
+    dlclose(reloader->handle);
+  }
+  free(reloader->lib_path);
+  free(reloader);
+}
