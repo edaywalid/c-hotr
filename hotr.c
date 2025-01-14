@@ -59,10 +59,6 @@ int needs_reload(HotReloader *reloader) {
  * 5 - Get cleanup function
  */
 void *hot_reload_update(HotReloader *reloader) {
-  if (!needs_reload(reloader)) {
-    return reloader->handle;
-  }
-
   if (reloader->cleanup != NULL) {
     reloader->cleanup();
   }
