@@ -1,8 +1,10 @@
 #include "hotr.h"
 #include <dlfcn.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/inotify.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -13,6 +15,27 @@ HotReloader *hot_reload_init(const char *lib_path) {
   reloader->handle = NULL;
   reloader->last_modified = 0;
   reloader->cleanup = NULL;
+
+  reloader->inotify_fd = inotify_init();
+  if (reloader->inotify_fd < 0) {
+    perror("inotify_init error");
+    free(reloader->lib_path);
+    free(reloader);
+    return NULL;
+  }
+
+  char *dir_path = dirname(strdup(lib_path));
+  reloader->watch_fd = inotify_add_watch(reloader->inotify_fd, dir_path,
+                                         IN_MODIFY | IN_CREATE | IN_MOVED_TO);
+  free(dir_path);
+
+  if (reloader->watch_fd < 0) {
+    perror("inotify_add_watch");
+    close(reloader->inotify_fd);
+    free(reloader->lib_path);
+    free(reloader);
+    return NULL;
+  }
 
   return reloader;
 }
