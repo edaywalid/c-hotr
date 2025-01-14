@@ -89,6 +89,12 @@ void hot_reload_cleanup(HotReloader *reloader) {
   if (reloader->handle != NULL) {
     dlclose(reloader->handle);
   }
+  if (reloader->watch_fd >= 0) {
+    inotify_rm_watch(reloader->inotify_fd, reloader->watch_fd);
+  }
+  if (reloader->inotify_fd >= 0) {
+    close(reloader->inotify_fd);
+  }
   free(reloader->lib_path);
   free(reloader);
 }
