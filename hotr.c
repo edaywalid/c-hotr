@@ -8,6 +8,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#define EVENT_SIZE (sizeof(struct inotify_event))
+#define BUF_LEN (1024 * (EVENT_SIZE + 16))
+
 HotReloader *hot_reload_init(const char *lib_path) {
   HotReloader *reloader = malloc(sizeof(HotReloader));
 
@@ -80,6 +83,33 @@ void *hot_reload_update(HotReloader *reloader) {
   reloader->cleanup = dlsym(reloader->handle, "cleanup");
 
   return reloader->handle;
+}
+
+int watch_for_changes(HotReloader *reloader) {
+  char buffer[BUF_LEN];
+  char *lib_name = basename(strdup(reloader->lib_path));
+
+  int length = read(reloader->inotify_fd, buffer, BUF_LEN);
+  if (length < 0) {
+    perror("read");
+    free(lib_name);
+    return -1;
+  }
+
+  int i = 0;
+  while (i < length) {
+    struct inotify_event *event = (struct inotify_event *)&buffer[i];
+    if (event->len && !(event->mask & IN_ISDIR)) {
+      if (strcmp(event->name, lib_name) == 0) {
+        free(lib_name);
+        return 1; // File changed
+      }
+    }
+    i += EVENT_SIZE + event->len;
+  }
+
+  free(lib_name);
+  return 0; // No relevant changes
 }
 
 void hot_reload_cleanup(HotReloader *reloader) {
