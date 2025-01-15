@@ -68,6 +68,7 @@ void *hot_reload_update(HotReloader *reloader) {
 
   if (reloader->handle != NULL) {
     dlclose(reloader->handle);
+    reloader->handle = NULL;
   }
 
   reloader->handle = dlopen(reloader->lib_path, RTLD_NOW);
