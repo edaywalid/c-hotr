@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/inotify.h>
+#include <sys/select.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -62,6 +63,11 @@ int needs_reload(HotReloader *reloader) {
  * 5 - Get cleanup function
  */
 void *hot_reload_update(HotReloader *reloader) {
+  struct stat attr;
+  if (stat(reloader->lib_path, &attr) != 0 || attr.st_size == 0) {
+    fprintf(stderr, "Library file not ready\n");
+    return NULL;
+  }
   if (reloader->cleanup != NULL) {
     reloader->cleanup();
   }
@@ -77,8 +83,6 @@ void *hot_reload_update(HotReloader *reloader) {
     return NULL;
   }
 
-  struct stat attr;
-  stat(reloader->lib_path, &attr);
   reloader->last_modified = attr.st_mtime;
 
   reloader->cleanup = dlsym(reloader->handle, "cleanup");
