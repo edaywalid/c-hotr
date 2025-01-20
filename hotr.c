@@ -70,6 +70,11 @@ void *hot_reload_update(HotReloader *reloader) {
     fprintf(stderr, "Library file not ready\n");
     return NULL;
   }
+
+  if (attr.st_mtime <= reloader->last_modified) {
+    return NULL;
+  }
+
   if (reloader->cleanup != NULL) {
     reloader->cleanup();
   }
