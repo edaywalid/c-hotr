@@ -63,6 +63,8 @@ int needs_reload(HotReloader *reloader) {
  * 5 - Get cleanup function
  */
 void *hot_reload_update(HotReloader *reloader) {
+  usleep(100000);
+
   struct stat attr;
   if (stat(reloader->lib_path, &attr) != 0 || attr.st_size == 0) {
     fprintf(stderr, "Library file not ready\n");
