@@ -99,31 +99,46 @@ void *hot_reload_update(HotReloader *reloader) {
 
 int watch_for_changes(HotReloader *reloader) {
   char buffer[BUF_LEN];
-  char *lib_name = basename(strdup(reloader->lib_path));
+  char *path_copy = strdup(reloader->lib_path);
+  const char *lib_name = basename(path_copy);
+
+  fd_set fds;
+  FD_ZERO(&fds);
+  FD_SET(reloader->inotify_fd, &fds);
+
+  if (select(reloader->inotify_fd + 1, &fds, NULL, NULL, NULL) < 0) {
+    perror("select");
+    free(path_copy);
+    return -1;
+  }
 
   int length = read(reloader->inotify_fd, buffer, BUF_LEN);
   if (length < 0) {
     perror("read");
-    free(lib_name);
+    free(path_copy);
     return -1;
   }
 
+  int change_detected = 0;
   int i = 0;
   while (i < length) {
     struct inotify_event *event = (struct inotify_event *)&buffer[i];
     if (event->len && !(event->mask & IN_ISDIR)) {
       if (strcmp(event->name, lib_name) == 0) {
-        free(lib_name);
-        return 1; // File changed
+        change_detected = 1;
+        break;
       }
     }
     i += EVENT_SIZE + event->len;
   }
 
-  free(lib_name);
-  return 0; // No relevant changes
-}
+  if (change_detected) {
+    usleep(200000);
+  }
 
+  free(path_copy);
+  return change_detected;
+}
 void hot_reload_cleanup(HotReloader *reloader) {
   if (reloader->cleanup != NULL) {
     reloader->cleanup();
